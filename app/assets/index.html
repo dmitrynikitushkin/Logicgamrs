@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#e6f2fa">
+<title>Думалки для малышей</title>
+<style>
+@font-face{font-family:"Comfortaa";font-weight:300 700;font-display:swap;src:url(fonts/comfortaa-cyr.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Comfortaa";font-weight:300 700;font-display:swap;src:url(fonts/comfortaa-lat.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2212}
+@font-face{font-family:"Rubik";font-weight:300 900;font-display:swap;src:url(fonts/rubik-cyr.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Rubik";font-weight:300 900;font-display:swap;src:url(fonts/rubik-lat.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2212}
+/* Layout: a toy-shelf of chunky coloured blocks; one centred play table per game, big tap targets for small hands */
+:root{
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#e6f2fa; --bg2:#d3e8f6; --surface:#ffffff; --ink:#1d2945; --muted:#5a6a88; --line:#c3d6e6;
+  --c1:#ff6a58; --c2:#ffc23a; --c3:#36b27c; --c4:#4a8bff; --c5:#a26bff; --c6:#ff86bf;
+  --on-dark:#ffffff; --on-light:#1d2945;
+  --good:#2fae6e; --shadow-inv:0; --shadow-op:.82;
+  --f-display:"Comfortaa","Rubik","Trebuchet MS",sans-serif;
+  --f-body:"Rubik","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121c33; --bg2:#0d1628; --surface:#1e2c4c; --ink:#eef3ff; --muted:#a3b2d2; --line:#2e3f64;
+  --good:#4fd08e; --shadow-inv:.88; --shadow-op:.9; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#121c33; --bg2:#0d1628; --surface:#1e2c4c; --ink:#eef3ff; --muted:#a3b2d2; --line:#2e3f64;
+  --good:#4fd08e; --shadow-inv:.88; --shadow-op:.9; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background:radial-gradient(circle at 20% 0%, var(--bg2) 0, transparent 45%), var(--bg);
+  color:var(--ink); font-family:var(--f-body); font-size:17px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:12px 32px;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+}
+.wrap{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:18px}
+button{font:inherit; color:inherit; cursor:pointer; border:0; background:none}
+button:focus-visible{outline:4px solid var(--c4); outline-offset:3px}
+
+/* header */
+.top{display:flex; align-items:center; gap:8px}
+@media (max-width:440px){.top .iconbtn{width:40px; height:40px; font-size:19px} .pill{padding:7px 10px} .brand small{font-size:11px}}
+.brand{display:flex; align-items:center; gap:10px; margin-right:auto; min-width:0}
+.logo{width:44px; height:44px; border-radius:12px; display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:5px; background:var(--surface); box-shadow:0 3px 0 var(--line)}
+.logo i{border-radius:4px}
+.logo i:nth-child(1){background:var(--c1)}.logo i:nth-child(2){background:var(--c2)}.logo i:nth-child(3){background:var(--c4)}.logo i:nth-child(4){background:var(--c3)}
+.brand h1{font-family:var(--f-display); font-size:clamp(22px,5vw,30px); margin:0; letter-spacing:-.01em}
+.brand small{display:block; color:var(--muted); font-size:13px; font-weight:500; letter-spacing:.04em}
+.pill{display:flex; align-items:center; gap:6px; background:var(--surface); border-radius:999px; padding:8px 14px; font-weight:700; box-shadow:0 3px 0 var(--line); font-variant-numeric:tabular-nums}
+.iconbtn{width:46px; height:46px; border-radius:50%; background:var(--surface); box-shadow:0 3px 0 var(--line); font-size:22px; display:grid; place-items:center; transition:transform .1s}
+.iconbtn:active{transform:translateY(3px); box-shadow:none}
+.iconbtn[aria-pressed="false"]{opacity:.45}
+
+/* home */
+.hello{font-family:var(--f-display); font-size:clamp(20px,4.6vw,26px); margin:4px 0 0; text-wrap:balance}
+.hello span{color:var(--muted); font-family:var(--f-body); font-size:15px; display:block; font-weight:400; margin-top:4px}
+.shelf{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+@media (max-width:560px){.shelf{grid-template-columns:repeat(2,1fr)}}
+.block{
+  --c:var(--c1); --fg:var(--on-dark);
+  position:relative; background:var(--c); color:var(--fg); border-radius:22px; padding:16px 12px 14px;
+  box-shadow:0 7px 0 color-mix(in srgb, var(--c) 62%, #000); text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .12s, box-shadow .12s;
+}
+.block:hover{transform:translateY(-2px)}
+.block:active{transform:translateY(6px); box-shadow:0 1px 0 color-mix(in srgb, var(--c) 62%, #000)}
+.block .ico{font-size:clamp(46px,11vw,62px); line-height:1.1; filter:drop-shadow(0 3px 0 rgba(0,0,0,.15))}
+.block .nm{font-family:var(--f-display); font-weight:700; font-size:clamp(15px,3.6vw,18px); text-wrap:balance}
+.block .st{position:absolute; top:8px; right:10px; font-size:13px; font-weight:700; background:rgba(255,255,255,.3); border-radius:999px; padding:2px 8px; font-variant-numeric:tabular-nums}
+.block.yellow{--fg:var(--on-light)}
+.random{
+  align-self:center; background:var(--ink); color:var(--bg); font-family:var(--f-display); font-weight:700; font-size:20px;
+  padding:16px 28px; border-radius:999px; box-shadow:0 6px 0 color-mix(in srgb, var(--ink) 55%, var(--bg)); display:flex; gap:10px; align-items:center;
+}
+.random:active{transform:translateY(5px); box-shadow:0 1px 0 transparent}
+.parents{color:var(--muted); font-size:14px; line-height:1.5; max-width:62ch; margin:4px auto 0; text-align:center}
+
+/* game screen */
+.gbar{display:flex; align-items:center; gap:10px}
+.gbar h2{font-family:var(--f-display); font-size:clamp(18px,4.5vw,24px); margin:0; flex:1; min-width:0; text-wrap:balance}
+.dots{display:flex; gap:6px; justify-content:center; flex-wrap:wrap}
+.dots i{width:14px; height:14px; border-radius:50%; background:var(--line); transition:background .3s, transform .3s}
+.dots i.on{background:var(--c2); transform:scale(1.15)}
+.dots i.cur{background:var(--c4)}
+.prompt{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,5.6vw,32px); text-align:center; margin:0; text-wrap:balance; min-height:1.3em}
+.table{background:var(--surface); border-radius:28px; padding:clamp(14px,3.5vw,26px); box-shadow:0 6px 0 var(--line); display:flex; flex-direction:column; gap:20px; align-items:center}
+
+.tile{
+  background:var(--bg); border-radius:22px; display:grid; place-items:center; aspect-ratio:1; width:100%;
+  font-size:clamp(50px,15vw,96px); line-height:1; box-shadow:0 5px 0 var(--line); transition:transform .12s, background .2s;
+}
+.tile:active{transform:translateY(4px); box-shadow:0 1px 0 var(--line)}
+.grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:clamp(10px,3vw,18px); width:100%; max-width:440px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(10px,3vw,16px); width:100%; max-width:480px}
+.grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(8px,2.4vw,14px); width:100%; max-width:520px}
+.good{background:color-mix(in srgb, var(--good) 30%, var(--surface)) !important; box-shadow:0 5px 0 var(--good) !important; animation:pop .45s}
+.nope{animation:shake .4s}
+.fade{opacity:.3; transition:opacity .3s}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+
+/* pattern */
+.row{display:flex; flex-wrap:wrap; justify-content:center; gap:8px}
+.bead{width:clamp(44px,11vw,62px); height:clamp(44px,11vw,62px); display:grid; place-items:center; font-size:clamp(30px,8vw,46px); background:var(--bg); border-radius:16px}
+.bead.q{border:3px dashed var(--c4); color:var(--c4); font-family:var(--f-display); font-weight:700; background:transparent}
+.opts{display:flex; gap:clamp(10px,3vw,18px); justify-content:center; flex-wrap:wrap}
+.opts .tile{width:clamp(84px,24vw,120px); font-size:clamp(44px,12vw,66px)}
+
+/* shadow */
+.target{font-size:clamp(80px,22vw,130px); line-height:1; animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-3deg)}}
+.sil{filter:brightness(0) invert(var(--shadow-inv)) opacity(var(--shadow-op))}
+.good .sil{filter:none}
+
+/* count */
+.pile{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; max-width:520px}
+.thing{font-size:clamp(40px,11vw,58px); line-height:1; padding:6px; border-radius:16px; position:relative; transition:transform .15s}
+.thing.done{background:color-mix(in srgb, var(--c2) 40%, transparent)}
+.thing b{position:absolute; right:-2px; top:-4px; background:var(--c4); color:#fff; font-size:14px; border-radius:999px; min-width:22px; height:22px; display:grid; place-items:center; padding:0 5px; font-family:var(--f-body)}
+.num{font-family:var(--f-display); font-weight:700; font-size:clamp(44px,12vw,64px) !important; color:var(--ink)}
+.hint{color:var(--muted); font-size:14px; margin:0; text-align:center}
+
+/* more/less */
+.trays{display:grid; grid-template-columns:1fr 1fr; gap:clamp(10px,3vw,18px); width:100%}
+.tray{background:var(--bg); border-radius:24px; min-height:200px; padding:14px; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:4px; box-shadow:0 5px 0 var(--line); font-size:clamp(28px,7.5vw,42px); line-height:1.1}
+.tray:active{transform:translateY(4px); box-shadow:0 1px 0 var(--line)}
+
+/* memory */
+.card{aspect-ratio:3/4; border-radius:16px; perspective:600px; width:100%}
+.card .in{position:relative; width:100%; height:100%; transition:transform .35s; transform-style:preserve-3d}
+.card.open .in{transform:rotateY(180deg)}
+.card .f,.card .b{position:absolute; inset:0; border-radius:16px; display:grid; place-items:center; backface-visibility:hidden; -webkit-backface-visibility:hidden}
+.card .b{background:var(--c5); box-shadow:0 5px 0 color-mix(in srgb, var(--c5) 60%, #000);
+  background-image:radial-gradient(circle, rgba(255,255,255,.28) 2px, transparent 2.5px); background-size:14px 14px}
+.card .f{background:var(--bg); transform:rotateY(180deg); font-size:clamp(34px,10vw,58px); box-shadow:0 5px 0 var(--line)}
+.card.matched .f{background:color-mix(in srgb, var(--good) 28%, var(--surface)); box-shadow:0 5px 0 var(--good)}
+
+/* finish overlay */
+.overlay{position:fixed; inset:0; background:color-mix(in srgb, var(--bg2) 80%, transparent); backdrop-filter:blur(4px); display:grid; place-items:center; z-index:20;
+  padding:max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); overflow:auto}
+.win{background:var(--surface); border-radius:30px; padding:24px clamp(16px,4vw,30px); max-width:520px; width:100%; text-align:center; display:flex; flex-direction:column; gap:14px; box-shadow:0 8px 0 var(--line); animation:pop .5s}
+.win h3{font-family:var(--f-display); font-size:clamp(26px,7vw,36px); margin:0}
+.win .stars{font-size:38px; letter-spacing:4px}
+.win p{margin:0; color:var(--muted)}
+.win .shelf{grid-template-columns:repeat(2,1fr)}
+.btnrow{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+.btn{background:var(--c3); color:#fff; font-family:var(--f-display); font-weight:700; font-size:18px; padding:14px 22px; border-radius:999px; box-shadow:0 5px 0 color-mix(in srgb, var(--c3) 60%, #000)}
+.btn.ghost{background:var(--bg); color:var(--ink); box-shadow:0 5px 0 var(--line)}
+.btn:active{transform:translateY(4px); box-shadow:none}
+canvas#fx{position:fixed; inset:0; pointer-events:none; z-index:30; width:100%; height:100%}
+@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div><h1>Думалки</h1><small>ЛОГИЧЕСКИЕ ИГРЫ · 4+</small></div>
+    </div>
+    <div class="pill" title="Собранные звёзды"><span aria-hidden="true">⭐</span><span id="starTotal">0</span></div>
+    <button class="iconbtn" id="sndBtn" aria-pressed="true" aria-label="Звуки">🔔</button>
+    <button class="iconbtn" id="voiceBtn" aria-pressed="true" aria-label="Голос подсказывает задание">🗣️</button>
+  </header>
+  <main id="screen"></main>
+</div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const h = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; };
+const rand = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = (a,n) => shuffle(a).slice(0,n);
+const one = a => a[Math.floor(Math.random()*a.length)];
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem('dumalki:'+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem('dumalki:'+k, JSON.stringify(v)); }catch(e){} }
+};
+let soundOn = store.get('sound', true), voiceOn = store.get('voice', true);
+let stars = store.get('stars', {});
+const totalStars = () => Object.values(stars).reduce((a,b)=>a+b,0);
+
+/* ---------- sound & voice ---------- */
+let actx;
+function tones(freqs, dur=.12, type='sine', vol=.18){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    const t0 = actx.currentTime;
+    freqs.forEach((f,i)=>{
+      const o=actx.createOscillator(), g=actx.createGain(), s=t0+i*dur;
+      o.type=type; o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(vol,s+.02); g.gain.exponentialRampToValueAtTime(.0001,s+dur*1.8);
+      o.connect(g); g.connect(actx.destination); o.start(s); o.stop(s+dur*2);
+    });
+  }catch(e){}
+}
+const sfx = {
+  yes: () => tones([523,659,784,1047], .09, 'triangle'),
+  no:  () => tones([240,200], .14, 'sine', .14),
+  tap: () => tones([880], .05, 'triangle', .1),
+  win: () => tones([523,659,784,659,784,1047,1319], .11, 'triangle'),
+};
+let ruVoice = null;
+function loadVoice(){ try{ const vs = speechSynthesis.getVoices(); ruVoice = vs.find(v=>/^ru/i.test(v.lang)) || null; }catch(e){} }
+try{ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }catch(e){}
+let lastPrompt = '';
+const NATIVE_TTS = window.AndroidTTS || null; // provided by the Android app
+function say(text){
+  if(!voiceOn) return;
+  if(NATIVE_TTS){ try{ NATIVE_TTS.speak(String(text)); }catch(e){} return; }
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang='ru-RU'; if(ruVoice) u.voice=ruVoice; u.rate=.92; u.pitch=1.15;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+const praise = ['Молодец!','Умница!','Правильно!','Здорово!','Отлично!','Ура, верно!','Так держать!'];
+const tryAgain = ['Попробуй ещё!','Почти! Подумай ещё.','Ещё разок!','Не спеши, посмотри внимательно.'];
+
+/* ---------- confetti ---------- */
+const cv = $('#fx'), cx = cv.getContext('2d'); let parts=[], raf=0;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function confetti(){
+  if(reduced) return;
+  cv.width = innerWidth*devicePixelRatio; cv.height = innerHeight*devicePixelRatio;
+  const cols = ['--c1','--c2','--c3','--c4','--c5','--c6'].map(v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+  for(let i=0;i<140;i++) parts.push({x:cv.width/2, y:cv.height*.4, vx:(Math.random()-.5)*22*devicePixelRatio, vy:(-Math.random()*18-6)*devicePixelRatio,
+    s:(6+Math.random()*8)*devicePixelRatio, r:Math.random()*6, vr:(Math.random()-.5)*.3, c:one(cols), life:0});
+  if(!raf) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{ p.vy+=.55*devicePixelRatio; p.x+=p.vx; p.y+=p.vy; p.vx*=.99; p.r+=p.vr; p.life++;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); cx.restore(); });
+  parts = parts.filter(p=>p.y < cv.height+40 && p.life<240);
+  raf = parts.length ? requestAnimationFrame(loop) : (cx.clearRect(0,0,cv.width,cv.height), 0);
+}
+
+/* ---------- content ---------- */
+const CATS = {
+  fruit:  {name:'фрукты', grp:'food', items:['🍎','🍌','🍐','🍇','🍓','🍊','🍒','🍑','🍉','🍍']},
+  veg:    {name:'овощи', grp:'food', items:['🥕','🥒','🍅','🥔','🌽','🥦','🧅','🫑']},
+  sweet:  {name:'сладости', grp:'food', items:['🍭','🍰','🍩','🍪','🧁','🍫','🍬','🍦']},
+  animal: {name:'животные', grp:'live', items:['🐶','🐱','🐰','🐻','🐸','🐷','🐮','🦊','🐯','🐵']},
+  bird:   {name:'птицы', grp:'live', items:['🐔','🦆','🦉','🐧','🦜','🕊️','🦢']},
+  car:    {name:'транспорт', grp:'thing', items:['🚗','🚌','🚲','🚂','✈️','🚀','🚜','🚁','🚒','⛵']},
+  wear:   {name:'одежда', grp:'thing', items:['👕','👖','👗','🧦','👟','🧢','🧤','🧣','👒']},
+  toy:    {name:'игрушки', grp:'thing', items:['🧸','⚽','🪀','🎈','🪁','🎲','🧩','🪅']},
+  sky:    {name:'то, что на небе', grp:'nature', items:['☀️','🌙','⭐','☁️','🌈']},
+};
+const PAT_SETS = [
+  ['🔴','🔵','🟡','🟢','🟣','🟠'],
+  ['⭐','🌙','☀️','❤️','☁️'],
+  ['🐶','🐱','🐰','🐸','🐻'],
+  ['🍎','🍌','🍇','🍓','🍐'],
+  ['🟥','🟦','🟨','🟩','🟪'],
+];
+const SHADOWS = ['🐘','🦒','🐢','🐇','🦋','🐟','🐌','🦆','🐎','🐈','🌵','🍄','🚲','✈️','🎸','☂️','⚓','🔑','🦕','🐙','🦀','🐳','🚁','🏠','🍐','🦔','🐿️','🦩','🐝','🚂'];
+const COUNT_ITEMS = [['🍎','яблок'],['⚽','мячиков'],['🐟','рыбок'],['⭐','звёздочек'],['🦆','уточек'],['🚗','машинок'],['🌸','цветочков'],['🐞','божьих коровок'],['🍓','ягодок'],['🎈','шариков'],['🐣','цыплят']];
+const MEM_ITEMS = ['🐶','🐱','🦊','🐸','🐼','🦁','🐵','🐷','🐰','🐻','🦄','🐙','🐢','🐝'];
+
+/* ---------- games ---------- */
+const GAMES = [
+  {id:'odd', name:'Что лишнее?', icon:'🍌', c:'--c1', rounds:6, about:'Найди картинку, которая не подходит к остальным.', play:gameOdd},
+  {id:'pattern', name:'Продолжи ряд', icon:'🔴', c:'--c4', rounds:6, about:'Посмотри на бусы и угадай, что будет дальше.', play:gamePattern},
+  {id:'shadow', name:'Найди тень', icon:'🦒', c:'--c3', rounds:6, about:'Чья это тень? Найди её!', play:gameShadow},
+  {id:'count', name:'Посчитай', icon:'🖐️', c:'--c2', yellow:true, rounds:6, about:'Посчитай картинки и выбери цифру.', play:gameCount},
+  {id:'more', name:'Где больше?', icon:'🍬', c:'--c6', rounds:6, about:'Сравни две тарелки: где больше, где меньше.', play:gameMore},
+  {id:'memory', name:'Найди пару', icon:'🃏', c:'--c5', rounds:3, about:'Открывай карточки и запоминай, где кто спрятался.', play:gameMemory},
+];
+
+/* round context */
+let cur = null; // {game, round, roundsEl...}
+function solved(msg){
+  if(cur.locked) return; cur.locked = true;
+  sfx.yes(); say(msg || one(praise));
+  stars[cur.game.id] = (stars[cur.game.id]||0) + 1; store.set('stars', stars); updateStars();
+  const d = cur.dots.children[cur.round]; if(d){ d.classList.remove('cur'); d.classList.add('on'); }
+  setTimeout(()=>{ cur.round++; cur.round < cur.game.rounds ? nextRound() : finish(); }, msg && msg.length>14 ? 2300 : 1400);
+}
+function wrong(el){
+  sfx.no(); if(Math.random()<.6) say(one(tryAgain));
+  if(el){ el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); }
+}
+function setPrompt(text, speakText){ cur.promptEl.textContent = text; lastPrompt = speakText || text; say(lastPrompt); }
+
+function gameOdd(area){
+  const keys = Object.keys(CATS);
+  const a = one(keys);
+  const b = one(keys.filter(k => CATS[k].grp !== CATS[a].grp));
+  const items = pick(CATS[a].items,3).map(e=>({e, ok:false}));
+  items.push({e:one(CATS[b].items), ok:true});
+  setPrompt('Что здесь лишнее?', 'Что здесь лишнее? Найди картинку, которая не подходит.');
+  const g = h('div','grid2');
+  shuffle(items).forEach(it=>{
+    const t = h('button','tile', it.e); t.setAttribute('aria-label', it.ok ? 'картинка' : 'картинка');
+    t.onclick = () => { if(cur.locked) return;
+      if(it.ok){ t.classList.add('good'); [...g.children].forEach(c=>c!==t&&c.classList.add('fade')); solved(`Правильно! Остальные — ${CATS[a].name}.`); }
+      else wrong(t);
+    };
+    g.append(t);
+  });
+  area.append(g);
+}
+
+function gamePattern(area){
+  const r = cur.round;
+  const tmpl = r<2 ? 'AB' : r<3 ? one(['AAB','ABB']) : r<5 ? one(['AAB','ABB','ABC']) : one(['ABC','AABB','ABCC']);
+  const uniq = [...new Set(tmpl)];
+  const set = one(PAT_SETS); const syms = pick(set, uniq.length+1);
+  const map = {}; uniq.forEach((k,i)=> map[k]=syms[i]);
+  const L = tmpl.length*2 + rand(0, tmpl.length-1);
+  const seq = Array.from({length:L}, (_,i)=> map[tmpl[i%tmpl.length]]);
+  const ans = map[tmpl[L%tmpl.length]];
+  setPrompt('Что будет дальше?', 'Посмотри на ряд. Что будет дальше?');
+  const row = h('div','row');
+  seq.forEach(s=> row.append(h('div','bead',s)));
+  const q = h('div','bead q','?'); row.append(q);
+  const opts = h('div','opts');
+  shuffle(uniq.map(k=>map[k]).concat(syms[uniq.length])).slice(0,4).forEach(s=>{
+    const t = h('button','tile',s);
+    t.onclick = () => { if(cur.locked) return;
+      if(s===ans){ t.classList.add('good'); q.className='bead good'; q.textContent=s; solved(); } else wrong(t);
+    };
+    opts.append(t);
+  });
+  if(![...opts.children].some(c=>c.textContent===ans)){ opts.lastChild.textContent = ans; }
+  area.append(row, opts);
+}
+
+function gameShadow(area){
+  const n = cur.round<2 ? 3 : 4;
+  const items = pick(SHADOWS, n); const target = items[0];
+  setPrompt('Где моя тень?', 'Найди тень этой картинки.');
+  const top = h('div','target', target);
+  const g = h('div', n===3 ? 'grid3' : 'grid2');
+  shuffle(items).forEach(e=>{
+    const t = h('button','tile', `<span class="sil">${e}</span>`); t.setAttribute('aria-label','тень');
+    t.onclick = () => { if(cur.locked) return;
+      if(e===target){ t.classList.add('good'); solved(); } else wrong(t);
+    };
+    g.append(t);
+  });
+  area.append(top, g);
+}
+
+function gameCount(area){
+  const r = cur.round; const max = r<2 ? 5 : r<4 ? 7 : 10;
+  const n = rand(r<2?2:3, max);
+  const [emo, gen] = one(COUNT_ITEMS);
+  setPrompt(`Сколько здесь ${gen}?`, `Посчитай! Сколько здесь ${gen}? Можно нажимать на каждую картинку.`);
+  const pile = h('div','pile'); let k = 0;
+  for(let i=0;i<n;i++){
+    const t = h('button','thing', emo);
+    t.onclick = () => { if(t.classList.contains('done')) return; k++; t.classList.add('done'); t.append(h('b','',k)); sfx.tap(); say(String(k)); };
+    pile.append(t);
+  }
+  const hint = h('p','hint','Нажимай на картинки, чтобы считать');
+  const nums = new Set([n]); while(nums.size<3){ const v = n + rand(-2,2); if(v>=1 && v<=10) nums.add(v); }
+  const opts = h('div','opts');
+  shuffle([...nums]).forEach(v=>{
+    const t = h('button','tile num', v);
+    t.onclick = () => { if(cur.locked) return;
+      if(v===n){ t.classList.add('good'); solved(`Правильно! ${n}!`); } else wrong(t);
+    };
+    opts.append(t);
+  });
+  area.append(pile, hint, opts);
+}
+
+function gameMore(area){
+  const r = cur.round; const want = r<2 ? 'больше' : one(['больше','меньше']);
+  const cap = r<3 ? 6 : 9, gap = r<3 ? 2 : 1;
+  let a, b; do { a = rand(1,cap); b = rand(1,cap); } while(Math.abs(a-b) < gap);
+  const emo = one(['🍬','🍓','🍪','🐟','🍒','🥕','🫐','🍭']);
+  setPrompt(`Где ${want}?`, `Посмотри на две тарелки. Где ${want}?`);
+  const trays = h('div','trays');
+  [a,b].forEach(v=>{
+    const t = h('button','tray', emo.repeat(v)); t.setAttribute('aria-label', v+' штук');
+    const ok = want==='больше' ? v===Math.max(a,b) : v===Math.min(a,b);
+    t.onclick = () => { if(cur.locked) return;
+      if(ok){ t.classList.add('good'); solved(`Верно! Здесь ${want}.`); } else wrong(t);
+    };
+    trays.append(t);
+  });
+  area.append(trays);
+}
+
+function gameMemory(area){
+  const pairs = [3,4,6][cur.round] || 6;
+  const items = pick(MEM_ITEMS, pairs); const deck = shuffle([...items, ...items]);
+  setPrompt('Найди одинаковые карточки', 'Открывай по две карточки и найди одинаковые!');
+  const g = h('div', pairs===3 ? 'grid3' : 'grid4');
+  let open = [], found = 0, busy = false;
+  deck.forEach(e=>{
+    const c = h('button','card', `<div class="in"><div class="b"></div><div class="f">${e}</div></div>`);
+    c.setAttribute('aria-label','карточка');
+    c.onclick = () => {
+      if(busy || cur.locked || c.classList.contains('open')) return;
+      c.classList.add('open'); sfx.tap(); open.push({c,e});
+      if(open.length===2){
+        const [x,y] = open; open = [];
+        if(x.e===y.e){ x.c.classList.add('matched'); y.c.classList.add('matched'); found++;
+          if(found===pairs) setTimeout(()=>solved('Ура! Все пары найдены!'), 400); else tones([660,880],.08,'triangle');
+        } else { busy = true; setTimeout(()=>{ x.c.classList.remove('open'); y.c.classList.remove('open'); busy=false; }, 900); }
+      }
+    };
+    g.append(c);
+  });
+  area.append(g);
+}
+
+/* ---------- screens ---------- */
+const screen = $('#screen');
+function updateStars(){ $('#starTotal').textContent = totalStars(); }
+function blockFor(gm, onClick){
+  const b = h('button','block' + (gm.yellow?' yellow':''), `<span class="ico">${gm.icon}</span><span class="nm">${gm.name}</span>` + (stars[gm.id] ? `<span class="st">⭐ ${stars[gm.id]}</span>` : ''));
+  b.style.setProperty('--c', `var(${gm.c})`);
+  b.onclick = onClick || (()=>startGame(gm.id));
+  return b;
+}
+function home(){
+  cur = null; try{ NATIVE_TTS ? NATIVE_TTS.stop() : speechSynthesis.cancel(); }catch(e){}
+  screen.innerHTML = '';
+  const wrap = h('div'); wrap.style.cssText='display:flex;flex-direction:column;gap:18px';
+  const greet = h('p','hello', 'Во что поиграем?<span>Выбери игру — и вперёд!</span>');
+  const shelf = h('div','shelf'); GAMES.forEach(g=> shelf.append(blockFor(g)));
+  const rnd = h('button','random','<span aria-hidden="true">🎲</span> Случайная игра');
+  rnd.onclick = () => startGame(one(GAMES).id);
+  const note = h('p','parents','Для взрослых: задания читаются вслух, поэтому малышу не нужно уметь читать. Ошибки не наказываются, а после каждой игры сразу предлагается следующая. Сложность растёт от раунда к раунду.');
+  wrap.append(greet, shelf, rnd, note); screen.append(wrap);
+  window.scrollTo({top:0});
+}
+function startGame(id){
+  const game = GAMES.find(g=>g.id===id);
+  screen.innerHTML = '';
+  const bar = h('div','gbar');
+  const back = h('button','iconbtn','🏠'); back.setAttribute('aria-label','Все игры'); back.onclick = home;
+  const title = h('h2','', game.name);
+  const rep = h('button','iconbtn','🔊'); rep.setAttribute('aria-label','Повторить задание'); rep.onclick = () => say(lastPrompt);
+  bar.append(back, title, rep);
+  const dots = h('div','dots'); for(let i=0;i<game.rounds;i++) dots.append(h('i'));
+  const table = h('section','table');
+  const prompt = h('p','prompt');
+  const area = h('div'); area.style.cssText='display:flex;flex-direction:column;gap:20px;align-items:center;width:100%';
+  table.append(prompt, area);
+  const wrap = h('div'); wrap.style.cssText='display:flex;flex-direction:column;gap:16px';
+  wrap.append(bar, dots, table); screen.append(wrap);
+  cur = {game, round:0, dots, promptEl:prompt, area, locked:false};
+  nextRound(); window.scrollTo({top:0});
+}
+function nextRound(){
+  cur.locked = false; cur.area.innerHTML = '';
+  [...cur.dots.children].forEach((d,i)=> d.classList.toggle('cur', i===cur.round));
+  cur.game.play(cur.area);
+}
+function finish(){
+  const game = cur.game; sfx.win(); confetti();
+  const others = pick(GAMES.filter(g=>g.id!==game.id), 2);
+  say(`Ура! Игра пройдена! А теперь давай поиграем в «${others[0].name}»?`);
+  const ov = h('div','overlay'); ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Игра пройдена');
+  const w = h('div','win');
+  w.append(h('div','stars','⭐'.repeat(Math.min(game.rounds,6))), h('h3','','Ура! Получилось!'), h('p','', `+${game.rounds} ⭐ в копилку! Во что сыграем теперь?`));
+  const shelf = h('div','shelf');
+  others.forEach(g=> shelf.append(blockFor(g, ()=>{ ov.remove(); startGame(g.id); })));
+  const row = h('div','btnrow');
+  const again = h('button','btn','Ещё раз'); again.onclick = ()=>{ ov.remove(); startGame(game.id); };
+  const all = h('button','btn ghost','Все игры'); all.onclick = ()=>{ ov.remove(); home(); };
+  row.append(again, all);
+  w.append(shelf, row); ov.append(w); document.body.append(ov);
+  setTimeout(()=> shelf.firstChild && shelf.firstChild.focus({preventScroll:true}), 300);
+}
+
+/* ---------- toggles ---------- */
+const sndBtn = $('#sndBtn'), voiceBtn = $('#voiceBtn');
+function syncToggles(){ sndBtn.setAttribute('aria-pressed', soundOn); voiceBtn.setAttribute('aria-pressed', voiceOn); }
+sndBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); syncToggles(); sfx.tap(); };
+voiceBtn.onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); syncToggles(); if(voiceOn) say('Я буду подсказывать!'); else { try{ NATIVE_TTS ? NATIVE_TTS.stop() : speechSynthesis.cancel(); }catch(e){} } };
+/* Android "back" button: overlay -> home, game -> home, home -> exit app */
+window.dumalkiBack = () => {
+  const ov = document.querySelector('.overlay');
+  if(ov || cur){ if(ov) ov.remove(); home(); return true; }
+  return false;
+};
+syncToggles(); updateStars(); home();
+})();
+</script>
+</body>
+</html>
