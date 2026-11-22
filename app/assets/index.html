@@ -203,6 +203,30 @@ canvas#fx{position:fixed; inset:0; pointer-events:none; z-index:30; width:100%; 
 .abc-key.seen{background:color-mix(in srgb, var(--c2) 35%, var(--surface))}
 .abc-key.cur{background:var(--c4); color:#fff; box-shadow:0 4px 0 color-mix(in srgb, var(--c4) 60%, #000)}
 .abc-key:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+/* numbers */
+.qty{display:grid; gap:2px 6px; justify-content:center; align-content:center; font-size:var(--qs,clamp(28px,8vw,40px)); line-height:1.15}
+.qty.sm{--qs:clamp(15px,4.4vw,24px); gap:1px 3px}
+.qty .q{position:relative}
+.qty .q.gone{opacity:.35; filter:grayscale(1)}
+.qty .q.gone::after{content:""; position:absolute; left:5%; right:5%; top:48%; height:4px; border-radius:2px; background:var(--c1); transform:rotate(-35deg)}
+.qty.empty .zero{font-size:14px; font-weight:500; color:var(--muted); font-family:var(--f-body)}
+.eq{display:flex; align-items:center; justify-content:center; gap:clamp(4px,1.6vw,12px); width:100%}
+.eqpics{display:flex; align-items:center; justify-content:center; gap:clamp(6px,2.5vw,16px); width:100%}
+.eqpics .qty{--qs:clamp(18px,5.6vw,30px)}
+.eqpics .op{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,7vw,36px); color:var(--muted)}
+.eq .part{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:var(--bg); border-radius:16px; padding:8px; min-width:52px; min-height:60px; flex:0 1 auto}
+.eq .part b{font-family:var(--f-display); font-size:clamp(28px,8vw,42px); line-height:1}
+.eq .part.ans{border:3px dashed var(--c4)}
+.eq .part.ans b{color:var(--c4)}
+.eq .part.ans.good{border-style:solid}
+.eq .op{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,7vw,42px); color:var(--muted); flex:none}
+.bigdigit{font-family:var(--f-display); font-weight:700; font-size:clamp(80px,22vw,120px); line-height:1; color:var(--c4)}
+.trays.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.trays.three .qty.sm{--qs:clamp(16px,2.6vw,24px)}
+@media (max-width:560px){.trays.three{grid-template-columns:1fr; gap:10px} .trays.three .tray{min-height:64px !important} .trays.three .qty.sm{--qs:clamp(22px,7vw,30px)}}
+.trays.three .tray{min-height:120px; min-width:0; padding:8px 4px; display:grid; place-items:center}
+.bead.numb{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,7vw,36px); color:var(--ink)}
+.numpics{min-height:2.4em; display:grid; place-items:center}
 @media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
 </style>
 </head>
@@ -480,6 +504,161 @@ function gameMemory(area){
 
 /* ---------- screens ---------- */
 const screen = $('#screen');
+/* ---------- numbers 0–10 ---------- */
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const NUM_WORDS = ['ноль','один','два','три','четыре','пять','шесть','семь','восемь','девять','десять'];
+const NUM_EMO = ['🍎','🍓','⭐','🐟','🎈','🐞','🍪','🌸','🐣','⚽','🍒'];
+const NUMBERS = [
+  {id:'num-abc',   num:true, explore:true, name:'Цифры',          icon:'123', c:'--c4'},
+  {id:'num-find',  num:true, name:'Найди цифру',    icon:'7',   c:'--c1', rounds:6, play:gameFindNum},
+  {id:'num-match', name:'Сколько это?',            icon:'🍓',  c:'--c6', rounds:6, play:gameMatchNum},
+  {id:'num-gap',   num:true, name:'Какое пропало?', icon:'?',   c:'--c5', rounds:6, play:gameGapNum},
+  {id:'num-plus',  num:true, name:'Сложение',       icon:'+',   c:'--c3', rounds:6, play:gamePlus},
+  {id:'num-minus', num:true, name:'Вычитание',      icon:'−',   c:'--c2', yellow:true, rounds:6, play:gameMinus},
+];
+/* objects laid out in rows of five, like a ten-frame, so small amounts can be seen at a glance */
+function qty(n, emo, cls){
+  const box = h('div','qty' + (cls ? ' '+cls : ''));
+  if(n === 0){ box.classList.add('empty'); box.innerHTML = '<span class="zero">пусто</span>'; return box; }
+  box.style.gridTemplateColumns = `repeat(${Math.min(n,5)}, auto)`;
+  for(let i=0;i<n;i++) box.append(h('span','q',emo));
+  return box;
+}
+function numOptions(ans, n, lo=0, hi=10){
+  const s = new Set([ans]); let spread = 2;
+  while(s.size < n){ const v = ans + rand(-spread, spread); if(v>=lo && v<=hi) s.add(v); spread = Math.min(10, spread+1); }
+  return shuffle([...s]);
+}
+function numTiles(area, opts, ans, onOk){
+  const g = h('div', opts.length===4 ? 'grid2' : 'grid3');
+  opts.forEach(v => g.append(letterTile(String(v), t => { if(v===ans){ t.classList.add('good'); onOk(); } else wrong(t); })));
+  area.append(g);
+}
+
+function gameFindNum(area){
+  const r = cur.round, n = r<2 ? 3 : r<4 ? 4 : 6, hi = r<2 ? 5 : 10;
+  const t = rand(0, hi);
+  const pool = shuffle(Array.from({length:11},(_,i)=>i).filter(v=>v!==t)).slice(0, n-1);
+  setPrompt(`Где цифра ${t}?`, `Найди цифру ${NUM_WORDS[t]}`);
+  numTiles(area, shuffle([t, ...pool]), t, () => solved(`${one(praise)} Это ${NUM_WORDS[t]}.`));
+}
+
+function gameMatchNum(area){
+  const r = cur.round, lo = r>=3 ? 0 : 1, hi = r<2 ? 5 : 10;
+  const t = rand(lo, hi), emo = one(NUM_EMO);
+  const counts = numOptions(t, 3, lo, hi);
+  setPrompt(`Где ${t}?`, `Найди, где ${NUM_WORDS[t]}.`);
+  const big = h('div','bigdigit', String(t));
+  const trays = h('div','trays three');
+  counts.forEach(c => {
+    const b = h('button','tray'); b.append(qty(c, emo, 'sm')); b.setAttribute('aria-label', NUM_WORDS[c]);
+    b.onclick = () => { if(cur.locked) return; if(c===t){ b.classList.add('good'); solved(`Правильно! Здесь ${NUM_WORDS[t]}.`); } else wrong(b); };
+    trays.append(b);
+  });
+  area.append(big, trays);
+}
+
+function gameGapNum(area){
+  const r = cur.round, down = r >= 4;
+  const s = rand(0, 6), row = Array.from({length:5}, (_,i)=> down ? s+4-i : s+i);
+  const hole = r < 2 ? rand(1,3) : rand(0,4), ans = row[hole];
+  setPrompt(down ? 'Считаем назад. Какое пропало?' : 'Какое число пропало?', down ? 'Считаем назад! Какое число пропало?' : 'Какое число пропало?');
+  const line = h('div','row');
+  const beads = row.map((v,i) => { const b = h('div','bead numb' + (i===hole ? ' q' : ''), i===hole ? '?' : String(v)); line.append(b); return b; });
+  area.append(line);
+  numTiles(area, numOptions(ans, r<3 ? 3 : 4), ans, () => {
+    beads[hole].className = 'bead numb good'; beads[hole].textContent = ans;
+    solved(cap(row.map(v=>NUM_WORDS[v]).join(', ')) + '!');
+  });
+}
+
+function eqPart(content, digit){
+  const p = h('div','part'); if(content) p.append(content); p.append(h('b','', digit)); return p;
+}
+function gamePlus(area){
+  const r = cur.round, max = r<2 ? 5 : r<4 ? 7 : 10;
+  const a = rand(1, max-1), b = rand(1, max-a), sum = a+b, emo = one(NUM_EMO);
+  setPrompt(`${a} + ${b} = ?`, `${cap(NUM_WORDS[a])} плюс ${NUM_WORDS[b]}. Сколько будет вместе?`);
+  const pics = h('div','eqpics'); pics.append(qty(a,emo), h('span','op','+'), qty(b,emo));
+  const eq = h('div','eq');
+  const ansPart = eqPart(null, '?'); ansPart.classList.add('ans');
+  eq.append(eqPart(null,String(a)), h('span','op','+'), eqPart(null,String(b)), h('span','op','='), ansPart);
+  area.append(pics, eq);
+  numTiles(area, numOptions(sum, r<2 ? 3 : 4), sum, () => {
+    ansPart.querySelector('b').textContent = sum; ansPart.classList.add('good');
+    solved(`${cap(NUM_WORDS[a])} плюс ${NUM_WORDS[b]} будет ${NUM_WORDS[sum]}!`);
+  });
+}
+
+function gameMinus(area){
+  const r = cur.round, max = r<2 ? 5 : r<4 ? 7 : 10;
+  const a = rand(2, max), b = rand(1, r>=3 ? a : a-1), rest = a-b, emo = one(NUM_EMO);
+  setPrompt(`${a} − ${b} = ?`, `Было ${NUM_WORDS[a]}. ${cap(NUM_WORDS[b])} убрали. Сколько осталось?`);
+  const pile = qty(a, emo); [...pile.children].slice(a-b).forEach(q => q.classList.add('gone'));
+  const eq = h('div','eq');
+  const ansPart = eqPart(null, '?'); ansPart.classList.add('ans');
+  eq.append(eqPart(null,String(a)), h('span','op','−'), eqPart(null,String(b)), h('span','op','='), ansPart);
+  area.append(pile, eq);
+  numTiles(area, numOptions(rest, r<2 ? 3 : 4), rest, () => {
+    ansPart.querySelector('b').textContent = rest; ansPart.classList.add('good');
+    solved(`${cap(NUM_WORDS[a])} минус ${NUM_WORDS[b]} будет ${NUM_WORDS[rest]}!`);
+  });
+}
+
+/* Free exploration of 0–10, with a "count together" mode */
+function startNums(id){
+  stopArcade(); cur = null;
+  const seen = new Set(store.get('seen-num', []));
+  let i = 0, done = seen.size >= 11, counting = 0;
+  screen.innerHTML = '';
+  const bar = h('div','gbar');
+  const back = h('button','iconbtn','🏠'); back.setAttribute('aria-label','Все игры'); back.onclick = home;
+  const rep = h('button','iconbtn','🔊'); rep.setAttribute('aria-label','Повторить');
+  bar.append(back, h('h2','','Цифры от 0 до 10'), rep);
+  const show = h('section','table abc-show');
+  const big = h('div','abc-big'), pics = h('div','numpics'), word = h('p','word');
+  const nav = h('div','btnrow');
+  const prev = h('button','btn ghost','◀'); prev.setAttribute('aria-label','Предыдущая цифра');
+  const next = h('button','btn','▶'); next.setAttribute('aria-label','Следующая цифра');
+  nav.append(prev, next);
+  const info = h('p','hint');
+  show.append(big, pics, word, nav, info);
+  const grid = h('div','abc-grid');
+  const btns = NUM_WORDS.map((_,k) => { const b = h('button','abc-key' + (seen.has(k) ? ' seen' : ''), String(k)); b.onclick = () => { counting = 0; open(k); }; grid.append(b); return b; });
+  const row = h('div','btnrow');
+  const countBtn = h('button','btn','Считаем до 10');
+  const playBtn = h('button','btn ghost','Играть: найди цифру'); playBtn.onclick = () => play('num-find');
+  row.append(countBtn, playBtn);
+  const wrap = h('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+  wrap.append(bar, show, grid, row); screen.append(wrap);
+  function open(k){
+    i = (k + 11) % 11;
+    big.textContent = i;
+    pics.innerHTML = ''; pics.append(qty(i, NUM_EMO[i]));
+    word.textContent = NUM_WORDS[i];
+    btns.forEach((b,k2) => b.classList.toggle('cur', k2 === i));
+    if(!seen.has(i)){ seen.add(i); btns[i].classList.add('seen'); store.set('seen-num', [...seen]); }
+    info.textContent = `Открыто ${seen.size} из 11`;
+    big.classList.remove('pop'); void big.offsetWidth; big.classList.add('pop');
+    sfx.tap(); say(cap(NUM_WORDS[i]));
+    checkDone();
+  }
+  function checkDone(){
+    if(done || counting || seen.size < 11) return;
+    done = true;
+    stars[id] = (stars[id]||0) + 3; store.set('stars', stars); updateStars();
+    setTimeout(() => showEnd({starsN:3, title:'Все цифры!', text:'Все цифры от 0 до 10 открыты! +3 ⭐ в копилку!', lead:'Ура! Ты знаешь все цифры!', again:()=>startNums(id), exclude:id}), 1500);
+  }
+  countBtn.onclick = () => {
+    const token = counting = Date.now(); let k = 0;
+    const tick = () => { if(counting !== token || !big.isConnected) return; open(k); k++; if(k <= 10) setTimeout(tick, 1100); else { counting = 0; checkDone(); } };
+    tick();
+  };
+  prev.onclick = () => { counting = 0; open(i-1); }; next.onclick = () => { counting = 0; open(i+1); };
+  rep.onclick = () => say(NUM_WORDS[i]);
+  open(0); window.scrollTo({top:0});
+}
+
 /* ---------- letters: Russian and Dutch alphabets ---------- */
 // [capital, small, name as spoken, word, picture]
 const ABC = {
@@ -1080,7 +1259,7 @@ function arcSpace(s){
 function updateStars(){ $('#starTotal').textContent = totalStars(); }
 function blockFor(gm, onClick){
   const badge = gm.arc ? (records[gm.id] ? `<span class="st">🏆 ${records[gm.id]}</span>` : '') : (stars[gm.id] ? `<span class="st">⭐ ${stars[gm.id]}</span>` : '');
-  const icoCls = gm.letter && !/\p{Extended_Pictographic}/u.test(gm.icon) ? 'ico abc' : 'ico';
+  const icoCls = (gm.letter || gm.num) && !/\p{Extended_Pictographic}/u.test(gm.icon) ? 'ico abc' : 'ico';
   const tag = gm.badge ? `<span class="lang">${gm.badge}</span>` : '';
   const b = h('button','block' + (gm.arc?' arc':'') + (gm.badge?' has-lang':'') + (gm.yellow&&!gm.arc?' yellow':''), `${tag}<span class="${icoCls}">${gm.icon}</span><span class="nm">${gm.name}</span>` + badge);
   b.style.setProperty('--c', `var(${gm.c})`);
@@ -1088,7 +1267,7 @@ function blockFor(gm, onClick){
   return b;
 }
 let view = 'home';
-function play(id){ view = 'game'; if(ARCADE.some(a=>a.id===id)) return startArcade(id); const L = LETTERS.find(g=>g.id===id); return L && L.explore ? startAbc(id) : startGame(id); }
+function play(id){ view = 'game'; if(ARCADE.some(a=>a.id===id)) return startArcade(id); if(id==='num-abc') return startNums(id); const L = LETTERS.find(g=>g.id===id); return L && L.explore ? startAbc(id) : startGame(id); }
 function home(){
   cur = null; view = 'home'; stopArcade(); try{ NATIVE_TTS ? NATIVE_TTS.stop() : speechSynthesis.cancel(); }catch(e){}
   screen.innerHTML = '';
@@ -1098,18 +1277,20 @@ function home(){
   const shelf = h('div','shelf'); GAMES.forEach(g=> shelf.append(blockFor(g)));
   const sec2 = h('h2','sec px','Ловкость <span>аркады, как на старой приставке</span>');
   const shelf2 = h('div','shelf'); ARCADE.forEach(g=> shelf2.append(blockFor(g)));
+  const sec4 = h('h2','sec','Цифры <span>от 0 до 10, сложение и вычитание</span>');
+  const shelf4 = h('div','shelf three'); NUMBERS.forEach(g=> shelf4.append(blockFor(g)));
   const sec3 = h('h2','sec','Буквы <span>русский и нидерландский алфавит</span>');
   const lettersBox = h('div','letters');
   ['ru','nl'].forEach(lang => { lettersBox.append(h('p','sub', ABC[lang].title)); const sh = h('div','shelf three'); LETTERS.filter(g=>g.lang===lang).forEach(g=> sh.append(blockFor(g))); lettersBox.append(sh); });
   const rnd = h('button','random','<span aria-hidden="true">🎲</span> Случайная игра');
-  rnd.onclick = () => play(one([...GAMES, ...LETTERS, ...ARCADE]).id);
+  rnd.onclick = () => play(one([...GAMES, ...LETTERS, ...NUMBERS, ...ARCADE]).id);
   const note = h('p','parents','Для взрослых: задания читаются вслух, поэтому малышу не нужно уметь читать. Ошибки не наказываются, а после каждой игры сразу предлагается следующая. В аркадах скорость сначала маленькая и растёт постепенно, а пауза включается сама, если свернуть приложение.');
-  wrap.append(greet, sec1, shelf, sec3, lettersBox, sec2, shelf2, rnd, note); screen.append(wrap);
+  wrap.append(greet, sec1, shelf, sec4, shelf4, sec3, lettersBox, sec2, shelf2, rnd, note); screen.append(wrap);
   window.scrollTo({top:0});
 }
 function startGame(id){
   stopArcade();
-  const game = [...GAMES, ...LETTERS].find(g=>g.id===id); view = 'game';
+  const game = [...GAMES, ...LETTERS, ...NUMBERS].find(g=>g.id===id); view = 'game';
   screen.innerHTML = '';
   const bar = h('div','gbar');
   const back = h('button','iconbtn','🏠'); back.setAttribute('aria-label','Все игры'); back.onclick = home;
@@ -1139,7 +1320,7 @@ function finish(){
 /* End-of-game card: always offers one logic game and one arcade to play next */
 function showEnd({starsN, title, text, lead, again, exclude}){
   sfx.win(); confetti();
-  const sug = shuffle([one([...GAMES, ...LETTERS].filter(g=>g.id!==exclude)), one(ARCADE.filter(g=>g.id!==exclude))]);
+  const sug = shuffle([one([...GAMES, ...LETTERS, ...NUMBERS].filter(g=>g.id!==exclude)), one(ARCADE.filter(g=>g.id!==exclude))]);
   say(`${lead} А теперь давай поиграем в «${sug[0].name}»?`, 'ru');
   const ov = h('div','overlay'); ov.setAttribute('role','dialog'); ov.setAttribute('aria-label', title);
   const w = h('div','win');
