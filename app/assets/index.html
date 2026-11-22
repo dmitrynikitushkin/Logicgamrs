@@ -178,6 +178,31 @@ canvas#fx{position:fixed; inset:0; pointer-events:none; z-index:30; width:100%; 
 .pbtn.act{background:#e5484d; color:#fff; box-shadow:0 6px 0 #8f1f24}
 .pbtn.act.on{box-shadow:0 1px 0 #8f1f24}
 .pbtn.wide{min-width:150px; font-family:var(--f-pixel); font-size:15px}
+/* letters */
+.letters{display:flex; flex-direction:column; gap:8px}
+.letters .sub{margin:4px 0 0; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.shelf.three{grid-template-columns:repeat(3,1fr)}
+.shelf.three .block{padding:14px 8px 12px}
+.shelf.three .ico{font-size:clamp(38px,10vw,56px)}
+.shelf.three .nm{font-size:clamp(13px,3.3vw,17px)}
+.block .ico.abc{font-family:var(--f-display); font-weight:700; letter-spacing:-.02em; filter:none; text-shadow:0 3px 0 rgba(0,0,0,.15)}
+.block.has-lang{padding-top:28px !important}
+.block .lang{position:absolute; top:7px; left:50%; transform:translateX(-50%); font-size:11px; font-weight:700; letter-spacing:.06em; background:rgba(255,255,255,.3); border-radius:999px; padding:2px 7px}
+.badge{display:inline-block; vertical-align:middle; font-family:var(--f-body); font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--muted); background:var(--surface); border-radius:999px; padding:3px 8px; box-shadow:0 2px 0 var(--line)}
+.tile.letter{font-family:var(--f-display); font-weight:700; font-size:clamp(44px,13vw,72px) !important}
+.word{margin:0; font-family:var(--f-display); font-weight:700; font-size:clamp(26px,7vw,40px); letter-spacing:.04em; text-align:center}
+.word .hl{color:var(--c1)}
+.word .hole{display:inline-block; min-width:1.1em; border-bottom:4px dashed var(--c4); color:var(--c4)}
+.abc-show{gap:10px}
+.abc-big{font-family:var(--f-display); font-weight:700; font-size:clamp(84px,24vw,140px); line-height:1; display:flex; align-items:baseline; gap:.12em}
+.abc-big small{font-size:.6em; color:var(--muted)}
+.abc-big.pop{animation:pop .4s}
+.abc-pic{font-size:clamp(56px,15vw,84px); line-height:1}
+.abc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); gap:8px}
+.abc-key{aspect-ratio:1; border-radius:14px; background:var(--surface); box-shadow:0 4px 0 var(--line); font-family:var(--f-display); font-weight:700; font-size:22px}
+.abc-key.seen{background:color-mix(in srgb, var(--c2) 35%, var(--surface))}
+.abc-key.cur{background:var(--c4); color:#fff; box-shadow:0 4px 0 color-mix(in srgb, var(--c4) 60%, #000)}
+.abc-key:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
 @media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
 </style>
 </head>
@@ -236,19 +261,25 @@ const sfx = {
   tap: () => tones([880], .05, 'triangle', .1),
   win: () => tones([523,659,784,659,784,1047,1319], .11, 'triangle'),
 };
-let ruVoice = null;
-function loadVoice(){ try{ const vs = speechSynthesis.getVoices(); ruVoice = vs.find(v=>/^ru/i.test(v.lang)) || null; }catch(e){} }
+let ruVoice = null, nlVoice = null;
+function loadVoice(){ try{ const vs = speechSynthesis.getVoices(); ruVoice = vs.find(v=>/^ru/i.test(v.lang)) || null; nlVoice = vs.find(v=>/^nl/i.test(v.lang)) || null; }catch(e){} }
 try{ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }catch(e){}
 let lastPrompt = '';
 const NATIVE_TTS = window.AndroidTTS || null; // provided by the Android app
-function say(text){
+/* lang: 'ru' or 'nl'; defaults to the language of the running game. Returns false when that voice is missing. */
+function say(text, lang){
   if(!voiceOn) return;
-  if(NATIVE_TTS){ try{ NATIVE_TTS.speak(String(text)); }catch(e){} return; }
+  lang = lang || (cur && cur.game && cur.game.lang) || 'ru';
+  if(NATIVE_TTS){
+    try{ return NATIVE_TTS.speakLang ? NATIVE_TTS.speakLang(String(text), lang) : (NATIVE_TTS.speak(String(text)), true); }catch(e){ return; }
+  }
   try{
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang='ru-RU'; if(ruVoice) u.voice=ruVoice; u.rate=.92; u.pitch=1.15;
+    const v = lang==='nl' ? nlVoice : ruVoice;
+    u.lang = lang==='nl' ? 'nl-NL' : 'ru-RU'; if(v) u.voice = v; u.rate=.92; u.pitch=1.15;
     speechSynthesis.speak(u);
+    return lang==='nl' && speechSynthesis.getVoices().length && !nlVoice ? false : true;
   }catch(e){}
 }
 const praise = ['Молодец!','Умница!','Правильно!','Здорово!','Отлично!','Ура, верно!','Так держать!'];
@@ -310,13 +341,13 @@ const GAMES = [
 let cur = null; // {game, round, roundsEl...}
 function solved(msg){
   if(cur.locked) return; cur.locked = true;
-  sfx.yes(); say(msg || one(praise));
+  sfx.yes(); say(msg || one(cur.game.lang ? ABC[cur.game.lang].praise : praise));
   stars[cur.game.id] = (stars[cur.game.id]||0) + 1; store.set('stars', stars); updateStars();
   const d = cur.dots.children[cur.round]; if(d){ d.classList.remove('cur'); d.classList.add('on'); }
   setTimeout(()=>{ cur.round++; cur.round < cur.game.rounds ? nextRound() : finish(); }, msg && msg.length>14 ? 2300 : 1400);
 }
 function wrong(el){
-  sfx.no(); if(Math.random()<.6) say(one(tryAgain));
+  sfx.no(); if(Math.random()<.6) say(one(cur && cur.game.lang ? ABC[cur.game.lang].again : tryAgain));
   if(el){ el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); }
 }
 function setPrompt(text, speakText){ cur.promptEl.textContent = text; lastPrompt = speakText || text; say(lastPrompt); }
@@ -449,6 +480,139 @@ function gameMemory(area){
 
 /* ---------- screens ---------- */
 const screen = $('#screen');
+/* ---------- letters: Russian and Dutch alphabets ---------- */
+// [capital, small, name as spoken, word, picture]
+const ABC = {
+  ru: {title:'Русский', badge:'РУС', letters:[
+    ['А','а','а','арбуз','🍉'],['Б','б','бэ','банан','🍌'],['В','в','вэ','виноград','🍇'],['Г','г','гэ','гриб','🍄'],
+    ['Д','д','дэ','дом','🏠'],['Е','е','е','енот','🦝'],['Ё','ё','ё','ёлка','🎄'],['Ж','ж','жэ','жираф','🦒'],
+    ['З','з','зэ','зебра','🦓'],['И','и','и','индюк','🦃'],['Й','й','и краткое','йогурт','🥛'],['К','к','ка','кот','🐱'],
+    ['Л','л','эль','лиса','🦊'],['М','м','эм','мяч','⚽'],['Н','н','эн','носок','🧦'],['О','о','о','облако','☁️'],
+    ['П','п','пэ','пингвин','🐧'],['Р','р','эр','рыба','🐟'],['С','с','эс','слон','🐘'],['Т','т','тэ','тигр','🐯'],
+    ['У','у','у','утка','🦆'],['Ф','ф','эф','флаг','🚩'],['Х','х','ха','хлеб','🍞'],['Ц','ц','цэ','цветок','🌸'],
+    ['Ч','ч','че','часы','⌚'],['Ш','ш','ша','шар','🎈'],['Щ','щ','ща','щенок','🐶'],['Ъ','ъ','твёрдый знак','объятия','🤗'],
+    ['Ы','ы','ы','сыр','🧀'],['Ь','ь','мягкий знак','конь','🐴'],['Э','э','э','эскимо','🍦'],['Ю','ю','ю','юбка','👗'],
+    ['Я','я','я','яблоко','🍎']],
+    noStart:['Ъ','Ы','Ь'],
+    praise:praise, again:tryAgain,
+    explore:(L)=>`${L[2]}. ${L[3]}.`,
+    findShow:(t,small)=> small ? `Где маленькая буква ${t}?` : `Где буква ${t}?`,
+    findSay:(L,small)=> small ? `Найди маленькую букву ${L[2]}` : `Найди букву ${L[2]}`,
+    firstShow:'С какой буквы начинается слово?',
+    firstSay:(L)=>`${L[3]}. С какой буквы начинается слово ${L[3]}?`,
+    firstOk:(L)=>`Правильно! ${L[3]} начинается на ${L[2]}!`,
+    findOk:(L)=>`${one(praise)} Это ${L[2]}.`,
+    opened:(n,t)=>`Открыто ${n} из ${t}`,
+    noVoice:'Нет русского голоса: включите его в настройках телефона (Синтез речи).',
+  },
+  nl: {title:'Nederlands', badge:'NL', letters:[
+    ['A','a','aa','aap','🐒'],['B','b','bee','bal','⚽'],['C','c','cee','citroen','🍋'],['D','d','dee','deur','🚪'],
+    ['E','e','ee','eend','🦆'],['F','f','ef','fiets','🚲'],['G','g','gee','giraf','🦒'],['H','h','haa','huis','🏠'],
+    ['I','i','ie','inktvis','🐙'],['J','j','jee','jas','🧥'],['K','k','kaa','kat','🐱'],['L','l','el','leeuw','🦁'],
+    ['M','m','em','maan','🌙'],['N','n','en','neus','👃'],['O','o','oo','olifant','🐘'],['P','p','pee','peer','🍐'],
+    ['Q','q','kuu','quiche','🥧'],['R','r','er','raket','🚀'],['S','s','es','slak','🐌'],['T','t','tee','tomaat','🍅'],
+    ['U','u','uu','uil','🦉'],['V','v','vee','vis','🐟'],['W','w','wee','walvis','🐳'],['X','x','iks','xylofoon','🎼'],
+    ['Y','y','griekse ij','yoghurt','🥛'],['Z','z','zet','zon','☀️']],
+    noStart:['Q','X','Y'],
+    praise:['Goed zo!','Super!','Heel goed!','Knap gedaan!','Ja, goed!','Prima!'],
+    again:['Probeer het nog eens!','Bijna! Kijk nog eens.','Nog een keer!'],
+    explore:(L)=>`${L[2]}. ${L[3]}.`,
+    findShow:(t,small)=> small ? `Waar is de kleine ${t}?` : `Waar is de ${t}?`,
+    findSay:(L,small)=> small ? `Waar is de kleine letter ${L[2]}?` : `Waar is de letter ${L[2]}?`,
+    firstShow:'Met welke letter begint het woord?',
+    firstSay:(L)=>`${L[3]}. Met welke letter begint ${L[3]}?`,
+    firstOk:(L)=>`Goed zo! ${L[3]} begint met de ${L[2]}!`,
+    findOk:(L)=>`${one(['Goed zo!','Super!','Heel goed!'])} Dat is de ${L[2]}.`,
+    opened:(n,t)=>`Открыто ${n} из ${t}`,
+    noVoice:'Нет нидерландского голоса: в настройках телефона откройте «Синтез речи» и скачайте язык Nederlands.',
+  },
+};
+const LETTERS = [
+  {id:'ru-abc',   lang:'ru', explore:true, name:'Азбука',       icon:'Аа', c:'--c1'},
+  {id:'ru-find',  lang:'ru', name:'Найди букву',  icon:'Бб', c:'--c4', rounds:6, play:a=>gameFindLetter(a,'ru')},
+  {id:'ru-first', lang:'ru', name:'Первая буква', icon:'🍉', c:'--c3', rounds:6, play:a=>gameFirstLetter(a,'ru')},
+  {id:'nl-abc',   lang:'nl', explore:true, name:'Alfabet',      icon:'Aa', c:'--c2', yellow:true},
+  {id:'nl-find',  lang:'nl', name:'Zoek de letter', icon:'Bb', c:'--c5', rounds:6, play:a=>gameFindLetter(a,'nl')},
+  {id:'nl-first', lang:'nl', name:'Eerste letter',  icon:'🐒', c:'--c6', rounds:6, play:a=>gameFirstLetter(a,'nl')},
+];
+LETTERS.forEach(g => { g.letter = true; g.badge = ABC[g.lang].badge; });
+
+function letterTile(text, onPick){
+  const t = h('button','tile num letter', text);
+  t.onclick = () => { if(cur.locked) return; onPick(t); };
+  return t;
+}
+function gameFindLetter(area, lang){
+  const A = ABC[lang], r = cur.round, n = r<2 ? 3 : r<4 ? 4 : 6, small = r >= 3;
+  const opts = pick(A.letters, n), L = opts[0], idx = small ? 1 : 0;
+  setPrompt(A.findShow(L[idx], small), A.findSay(L, small));
+  const g = h('div', n===4 ? 'grid2' : 'grid3');
+  shuffle(opts).forEach(o => g.append(letterTile(o[idx], t => {
+    if(o === L){ t.classList.add('good'); solved(A.findOk(L)); } else wrong(t);
+  })));
+  area.append(g);
+}
+function gameFirstLetter(area, lang){
+  const A = ABC[lang], r = cur.round, n = r<2 ? 3 : 4;
+  const pool = A.letters.filter(l => !A.noStart.includes(l[0]));
+  const opts = pick(pool, n), L = opts[0];
+  setPrompt(A.firstShow, A.firstSay(L));
+  const pic = h('div','target', L[4]);
+  const word = h('p','word', `<b class="hole">?</b>${L[3].slice(1)}`);
+  const g = h('div', n===4 ? 'grid2' : 'grid3');
+  shuffle(opts).forEach(o => g.append(letterTile(o[0] + o[1], t => {
+    if(o === L){ t.classList.add('good'); word.innerHTML = `<b class="hl">${L[1]}</b>${L[3].slice(1)}`; solved(A.firstOk(L)); } else wrong(t);
+  })));
+  area.append(pic, word, g);
+}
+
+/* Free exploration: tap a letter, see and hear it with a picture */
+function startAbc(id){
+  stopArcade(); cur = null;
+  const G = LETTERS.find(g=>g.id===id), A = ABC[G.lang], list = A.letters;
+  const seen = new Set(store.get('seen-'+G.lang, []));
+  let i = 0, done = seen.size >= list.length;
+  screen.innerHTML = '';
+  const bar = h('div','gbar');
+  const back = h('button','iconbtn','🏠'); back.setAttribute('aria-label','Все игры'); back.onclick = home;
+  const rep = h('button','iconbtn','🔊'); rep.setAttribute('aria-label','Повторить');
+  bar.append(back, h('h2','', `${G.name} <span class="badge">${G.badge}</span>`), rep);
+  const show = h('section','table abc-show');
+  const big = h('div','abc-big'), pic = h('div','abc-pic'), word = h('p','word');
+  const nav = h('div','btnrow');
+  const prev = h('button','btn ghost','◀'); prev.setAttribute('aria-label','Предыдущая буква');
+  const next = h('button','btn','▶'); next.setAttribute('aria-label','Следующая буква');
+  nav.append(prev, next);
+  const info = h('p','hint');
+  show.append(big, pic, word, nav, info);
+  const grid = h('div','abc-grid');
+  const btns = list.map((L, k) => { const b = h('button','abc-key' + (seen.has(L[0]) ? ' seen' : ''), L[0]); b.onclick = () => open(k); grid.append(b); return b; });
+  const playBtn = h('button','random', G.lang==='ru' ? 'Играть: найди букву' : 'Speel: zoek de letter');
+  playBtn.onclick = () => play(G.lang + '-find');
+  const warn = h('p','hint'); warn.hidden = true;
+  const wrap = h('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+  wrap.append(bar, show, warn, grid, playBtn); screen.append(wrap);
+  function speakCur(){ const ok = say(A.explore(list[i]), G.lang); if(ok === false && voiceOn){ warn.textContent = A.noVoice; warn.hidden = false; } }
+  function open(k){
+    i = (k + list.length) % list.length; const L = list[i];
+    big.innerHTML = `${L[0]}<small>${L[1]}</small>`;
+    pic.textContent = L[4];
+    const at = L[3].indexOf(L[1]);
+    word.innerHTML = at < 0 ? L[3] : `${L[3].slice(0,at)}<b class="hl">${L[3][at]}</b>${L[3].slice(at+1)}`;
+    btns.forEach((b,k2) => b.classList.toggle('cur', k2 === i));
+    if(!seen.has(L[0])){ seen.add(L[0]); btns[i].classList.add('seen'); store.set('seen-'+G.lang, [...seen]); }
+    info.textContent = A.opened(seen.size, list.length);
+    big.classList.remove('pop'); void big.offsetWidth; big.classList.add('pop');
+    sfx.tap(); speakCur();
+    if(!done && seen.size === list.length){
+      done = true;
+      stars[G.id] = (stars[G.id]||0) + 3; store.set('stars', stars); updateStars();
+      setTimeout(() => showEnd({starsN:3, title:'Весь алфавит!', text:'Все буквы открыты! +3 ⭐ в копилку!', lead:'Ура! Ты открыл все буквы!', again:()=>startAbc(id), exclude:id}), 1800);
+    }
+  }
+  prev.onclick = () => open(i-1); next.onclick = () => open(i+1); rep.onclick = speakCur;
+  open(0); window.scrollTo({top:0});
+}
 /* ---------- arcade: shared engine ---------- */
 const PAL = ['#ff6a58','#ffc23a','#36b27c','#4a8bff','#a26bff','#ff86bf'];
 const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
@@ -916,14 +1080,17 @@ function arcSpace(s){
 function updateStars(){ $('#starTotal').textContent = totalStars(); }
 function blockFor(gm, onClick){
   const badge = gm.arc ? (records[gm.id] ? `<span class="st">🏆 ${records[gm.id]}</span>` : '') : (stars[gm.id] ? `<span class="st">⭐ ${stars[gm.id]}</span>` : '');
-  const b = h('button','block' + (gm.arc?' arc':'') + (gm.yellow&&!gm.arc?' yellow':''), `<span class="ico">${gm.icon}</span><span class="nm">${gm.name}</span>` + badge);
+  const icoCls = gm.letter && !/\p{Extended_Pictographic}/u.test(gm.icon) ? 'ico abc' : 'ico';
+  const tag = gm.badge ? `<span class="lang">${gm.badge}</span>` : '';
+  const b = h('button','block' + (gm.arc?' arc':'') + (gm.badge?' has-lang':'') + (gm.yellow&&!gm.arc?' yellow':''), `${tag}<span class="${icoCls}">${gm.icon}</span><span class="nm">${gm.name}</span>` + badge);
   b.style.setProperty('--c', `var(${gm.c})`);
   b.onclick = onClick || (()=>play(gm.id));
   return b;
 }
-function play(id){ return ARCADE.some(a=>a.id===id) ? startArcade(id) : startGame(id); }
+let view = 'home';
+function play(id){ view = 'game'; if(ARCADE.some(a=>a.id===id)) return startArcade(id); const L = LETTERS.find(g=>g.id===id); return L && L.explore ? startAbc(id) : startGame(id); }
 function home(){
-  cur = null; stopArcade(); try{ NATIVE_TTS ? NATIVE_TTS.stop() : speechSynthesis.cancel(); }catch(e){}
+  cur = null; view = 'home'; stopArcade(); try{ NATIVE_TTS ? NATIVE_TTS.stop() : speechSynthesis.cancel(); }catch(e){}
   screen.innerHTML = '';
   const wrap = h('div'); wrap.style.cssText='display:flex;flex-direction:column;gap:16px';
   const greet = h('p','hello', 'Во что поиграем?<span>Выбери игру — и вперёд!</span>');
@@ -931,19 +1098,22 @@ function home(){
   const shelf = h('div','shelf'); GAMES.forEach(g=> shelf.append(blockFor(g)));
   const sec2 = h('h2','sec px','Ловкость <span>аркады, как на старой приставке</span>');
   const shelf2 = h('div','shelf'); ARCADE.forEach(g=> shelf2.append(blockFor(g)));
+  const sec3 = h('h2','sec','Буквы <span>русский и нидерландский алфавит</span>');
+  const lettersBox = h('div','letters');
+  ['ru','nl'].forEach(lang => { lettersBox.append(h('p','sub', ABC[lang].title)); const sh = h('div','shelf three'); LETTERS.filter(g=>g.lang===lang).forEach(g=> sh.append(blockFor(g))); lettersBox.append(sh); });
   const rnd = h('button','random','<span aria-hidden="true">🎲</span> Случайная игра');
-  rnd.onclick = () => play(one([...GAMES, ...ARCADE]).id);
+  rnd.onclick = () => play(one([...GAMES, ...LETTERS, ...ARCADE]).id);
   const note = h('p','parents','Для взрослых: задания читаются вслух, поэтому малышу не нужно уметь читать. Ошибки не наказываются, а после каждой игры сразу предлагается следующая. В аркадах скорость сначала маленькая и растёт постепенно, а пауза включается сама, если свернуть приложение.');
-  wrap.append(greet, sec1, shelf, sec2, shelf2, rnd, note); screen.append(wrap);
+  wrap.append(greet, sec1, shelf, sec3, lettersBox, sec2, shelf2, rnd, note); screen.append(wrap);
   window.scrollTo({top:0});
 }
 function startGame(id){
   stopArcade();
-  const game = GAMES.find(g=>g.id===id);
+  const game = [...GAMES, ...LETTERS].find(g=>g.id===id); view = 'game';
   screen.innerHTML = '';
   const bar = h('div','gbar');
   const back = h('button','iconbtn','🏠'); back.setAttribute('aria-label','Все игры'); back.onclick = home;
-  const title = h('h2','', game.name);
+  const title = h('h2','', game.name + (game.badge ? ` <span class="badge">${game.badge}</span>` : ''));
   const rep = h('button','iconbtn','🔊'); rep.setAttribute('aria-label','Повторить задание'); rep.onclick = () => say(lastPrompt);
   bar.append(back, title, rep);
   const dots = h('div','dots'); for(let i=0;i<game.rounds;i++) dots.append(h('i'));
@@ -969,8 +1139,8 @@ function finish(){
 /* End-of-game card: always offers one logic game and one arcade to play next */
 function showEnd({starsN, title, text, lead, again, exclude}){
   sfx.win(); confetti();
-  const sug = shuffle([one(GAMES.filter(g=>g.id!==exclude)), one(ARCADE.filter(g=>g.id!==exclude))]);
-  say(`${lead} А теперь давай поиграем в «${sug[0].name}»?`);
+  const sug = shuffle([one([...GAMES, ...LETTERS].filter(g=>g.id!==exclude)), one(ARCADE.filter(g=>g.id!==exclude))]);
+  say(`${lead} А теперь давай поиграем в «${sug[0].name}»?`, 'ru');
   const ov = h('div','overlay'); ov.setAttribute('role','dialog'); ov.setAttribute('aria-label', title);
   const w = h('div','win');
   w.append(h('div','stars','⭐'.repeat(starsN)), h('h3','',title), h('p','',text));
@@ -992,7 +1162,7 @@ voiceBtn.onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); sync
 /* Android "back" button: overlay -> home, game -> home, home -> exit app */
 window.dumalkiBack = () => {
   const ov = document.querySelector('.overlay');
-  if(ov || cur || arc){ if(ov) ov.remove(); home(); return true; }
+  if(ov || cur || arc || view !== 'home'){ if(ov) ov.remove(); home(); return true; }
   return false;
 };
 syncToggles(); updateStars(); home();

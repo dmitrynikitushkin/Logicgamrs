@@ -25,6 +25,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     private WebView web;
     private TextToSpeech tts;
     private volatile boolean ttsReady = false;
+    private static final Locale RU = new Locale("ru", "RU");
+    private static final Locale NL = new Locale("nl", "NL");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,10 +62,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     public void onInit(int status) {
         if (status != TextToSpeech.SUCCESS) return;
-        int r = tts.setLanguage(new Locale("ru", "RU"));
-        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-            return; // no Russian voice on this phone: games still work, just silently
-        }
+        // Even without a Russian voice the engine stays usable for Dutch.
+        tts.setLanguage(RU);
         tts.setSpeechRate(0.92f);
         tts.setPitch(1.15f);
         ttsReady = true;
@@ -76,6 +76,18 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             if (ttsReady && text != null) {
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "dumalki");
             }
+        }
+
+        /** Speaks in "ru" or "nl". Returns false when the phone has no voice for that language. */
+        @JavascriptInterface
+        public synchronized boolean speakLang(String text, String lang) {
+            if (!ttsReady || text == null) return false;
+            int r = tts.setLanguage("nl".equals(lang) ? NL : RU);
+            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                return false; // stay silent rather than read Dutch with a Russian voice
+            }
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "dumalki");
+            return true;
         }
 
         @JavascriptInterface
